@@ -134,57 +134,57 @@ jobs:
       contents: write
     steps:
       # Checkout the repo and setup the tooling for this job
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0
+      # - name: Checkout
+      #   uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      #   with:
+      #     fetch-depth: 0
 
-      - name: Setup golang
-        uses: ./.github/actions/golang
+      # - name: Setup golang
+      #   uses: ./.github/actions/golang
 
-      - name: Install tools
-        uses: ./.github/actions/install-tools
+      # - name: Install tools
+      #   uses: ./.github/actions/install-tools
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          name: build-artifacts
-          path: build/
+      # - name: Download build artifacts
+      #   uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      #   with:
+      #     name: build-artifacts
+      #     path: build/
 
-      - name: Make zarf executable and skip brew latest for pre-release tags
-        run: |
-          chmod +x build/zarf
-          if [[ $GITHUB_REF_NAME == *"rc"* ]]; then
-            echo "BREW_NAME=zarf@latest-rc" >> $GITHUB_ENV
-          else
-            echo "BREW_NAME=zarf" >> $GITHUB_ENV
-          fi
+      # - name: Make zarf executable and skip brew latest for pre-release tags
+      #   run: |
+      #     chmod +x build/zarf
+      #     if [[ $GITHUB_REF_NAME == *"rc"* ]]; then
+      #       echo "BREW_NAME=zarf@latest-rc" >> $GITHUB_ENV
+      #     else
+      #       echo "BREW_NAME=zarf" >> $GITHUB_ENV
+      #     fi
 
-      # Before we run the release we need to aggressively cleanup files to reduce disk pressure
-      - name: Cleanup files
-        uses: ./.github/actions/cleanup-files
+      # # Before we run the release we need to aggressively cleanup files to reduce disk pressure
+      # - name: Cleanup files
+      #   uses: ./.github/actions/cleanup-files
 
-      - name: Setup release ENV vars
-        run: |
-          K8S_MODULES_VER=$(go list -f '{{.Version}}' -m k8s.io/client-go | sed 's/v//; s/\./ /g')
-          echo K8S_MODULES_MAJOR_VER=$(expr $(echo "$K8S_MODULES_VER" | cut -d " " -f 1) + 1) >> $GITHUB_ENV
-          echo K8S_MODULES_MINOR_VER=$(echo "$K8S_MODULES_VER" | cut -d " " -f 2) >> $GITHUB_ENV
-          echo K8S_MODULES_PATCH_VER=$(echo "$K8S_MODULES_VER" | cut -d " " -f 3) >> $GITHUB_ENV
+      # - name: Setup release ENV vars
+      #   run: |
+      #     K8S_MODULES_VER=$(go list -f '{{.Version}}' -m k8s.io/client-go | sed 's/v//; s/\./ /g')
+      #     echo K8S_MODULES_MAJOR_VER=$(expr $(echo "$K8S_MODULES_VER" | cut -d " " -f 1) + 1) >> $GITHUB_ENV
+      #     echo K8S_MODULES_MINOR_VER=$(echo "$K8S_MODULES_VER" | cut -d " " -f 2) >> $GITHUB_ENV
+      #     echo K8S_MODULES_PATCH_VER=$(echo "$K8S_MODULES_VER" | cut -d " " -f 3) >> $GITHUB_ENV
 
-          echo K9S_VERSION=$(go list -f '{{.Version}}' -m github.com/derailed/k9s) >> $GITHUB_ENV
-          echo CRANE_VERSION=$(go list -f '{{.Version}}' -m github.com/google/go-containerregistry) >> $GITHUB_ENV
-          echo SYFT_VERSION=$(go list -f '{{.Version}}' -m github.com/anchore/syft) >> $GITHUB_ENV
-          echo ARCHIVER_VERSION=$(go list -f '{{.Version}}' -m github.com/mholt/archiver/v3) >> $GITHUB_ENV
-          echo HELM_VERSION=$(go list -f '{{.Version}}' -m helm.sh/helm/v3) >> $GITHUB_ENV
+      #     echo K9S_VERSION=$(go list -f '{{.Version}}' -m github.com/derailed/k9s) >> $GITHUB_ENV
+      #     echo CRANE_VERSION=$(go list -f '{{.Version}}' -m github.com/google/go-containerregistry) >> $GITHUB_ENV
+      #     echo SYFT_VERSION=$(go list -f '{{.Version}}' -m github.com/anchore/syft) >> $GITHUB_ENV
+      #     echo ARCHIVER_VERSION=$(go list -f '{{.Version}}' -m github.com/mholt/archiver/v3) >> $GITHUB_ENV
+      #     echo HELM_VERSION=$(go list -f '{{.Version}}' -m helm.sh/helm/v3) >> $GITHUB_ENV
 
-      - name: Get Brew tap repo token
-        id: brew-tap-token
-        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v1.11.0
-        with:
-          app-id: ${{ secrets.HOMEBREW_TAP_WORKFLOW_GITHUB_APP_ID }}
-          private-key: ${{ secrets.HOMEBREW_TAP_WORKFLOW_GITHUB_APP_SECRET }}
-          owner: defenseunicorns
-          repositories: homebrew-tap
+      # - name: Get Brew tap repo token
+      #   id: brew-tap-token
+      #   uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v1.11.0
+      #   with:
+      #     app-id: ${{ secrets.HOMEBREW_TAP_WORKFLOW_GITHUB_APP_ID }}
+      #     private-key: ${{ secrets.HOMEBREW_TAP_WORKFLOW_GITHUB_APP_SECRET }}
+      #     owner: defenseunicorns
+      #     repositories: homebrew-tap
 
       # Create the GitHub release notes, upload artifact backups to S3, publish homebrew recipe
       - name: Run GoReleaser
@@ -195,10 +195,10 @@ jobs:
           args: release --clean --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ steps.brew-tap-token.outputs.token }}
+          # HOMEBREW_TAP_GITHUB_TOKEN: ${{ steps.brew-tap-token.outputs.token }}
 
-      - name: Save CVE report
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: cve-report
-          path: build/zarf-known-cves.csv
+      # - name: Save CVE report
+      #   uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      #   with:
+      #     name: cve-report
+      #     path: build/zarf-known-cves.csv
