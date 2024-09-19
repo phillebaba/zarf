@@ -49,10 +49,10 @@ jobs:
         run: |
           cp build/zarf build/zarf-linux-amd64
           cp build/zarf-arm build/zarf-linux-arm64
-          docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/zarf-dev/zarf/agent:$GITHUB_REF_NAME .
+          docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/phillebaba/zarf/agent:$GITHUB_REF_NAME .
           rm build/zarf-linux-amd64
           rm build/zarf-linux-arm64
-          echo ZARF_AGENT_IMAGE_DIGEST=$(docker buildx imagetools inspect ghcr.io/zarf-dev/zarf/agent:$GITHUB_REF_NAME --format '{{ json . }}' | jq -r .manifest.digest) >> $GITHUB_ENV
+          echo ZARF_AGENT_IMAGE_DIGEST=$(docker buildx imagetools inspect ghcr.io/phillebaba/zarf/agent:$GITHUB_REF_NAME --format '{{ json . }}' | jq -r .manifest.digest) >> $GITHUB_ENV
 
       - name: Auth with AWS
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
@@ -63,7 +63,7 @@ jobs:
           role-duration-seconds: 3600
 
       - name: "Zarf Agent: Sign the Image"
-        run: cosign sign --key awskms:///${{ secrets.COSIGN_AWS_KMS_KEY }} -a release-engineer=https://github.com/${{ github.actor }} -a version=$GITHUB_REF_NAME ghcr.io/zarf-dev/zarf/agent@$ZARF_AGENT_IMAGE_DIGEST -y
+        run: cosign sign --key awskms:///${{ secrets.COSIGN_AWS_KMS_KEY }} -a release-engineer=https://github.com/${{ github.actor }} -a version=$GITHUB_REF_NAME ghcr.io/phillebaba/zarf/agent@$ZARF_AGENT_IMAGE_DIGEST -y
         env:
           COSIGN_EXPERIMENTAL: 1
 
@@ -75,8 +75,8 @@ jobs:
 
       - name: Publish Init Package as OCI and Skeleton
         run: |
-          make publish-init-package ARCH=amd64 REPOSITORY_URL=ghcr.io/zarf-dev/packages
-          make publish-init-package ARCH=arm64 REPOSITORY_URL=ghcr.io/zarf-dev/packages
+          make publish-init-package ARCH=amd64 REPOSITORY_URL=ghcr.io/phillebaba/packages
+          make publish-init-package ARCH=arm64 REPOSITORY_URL=ghcr.io/phillebaba/packages
 
       # Create a CVE report based on this build
       - name: Create release time CVE report
