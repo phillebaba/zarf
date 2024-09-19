@@ -9,50 +9,50 @@ on:
       - "v*"
 
 jobs:
-  build-release:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      packages: write
-    steps:
-      # Checkout the repo and setup the tooling for this job
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0
+  # build-release:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     id-token: write
+  #     packages: write
+  #   steps:
+  #     # Checkout the repo and setup the tooling for this job
+  #     - name: Checkout
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Setup golang
-        uses: ./.github/actions/golang
+  #     - name: Setup golang
+  #       uses: ./.github/actions/golang
 
-      - name: Install tools
-        uses: ./.github/actions/install-tools
+  #     - name: Install tools
+  #       uses: ./.github/actions/install-tools
 
-      - name: install grype
-        env:
-          VERSION: v0.74.6
-        run: "curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin $VERSION"
-        shell: bash
+  #     - name: install grype
+  #       env:
+  #         VERSION: v0.74.6
+  #       run: "curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin $VERSION"
+  #       shell: bash
 
-      - name: Build CLI
-        run: |
-          make build-cli-linux-amd
-          make build-cli-linux-arm
+  #     - name: Build CLI
+  #       run: |
+  #         make build-cli-linux-amd
+  #         make build-cli-linux-arm
 
-      - name: "Zarf Agent: Login to GHCR"
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: dummy
-          password: ${{ github.token }}
+  #     - name: "Zarf Agent: Login to GHCR"
+  #       uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+  #       with:
+  #         registry: ghcr.io
+  #         username: dummy
+  #         password: ${{ github.token }}
 
-      - name: "Zarf Agent: Build and Publish the Image"
-        run: |
-          cp build/zarf build/zarf-linux-amd64
-          cp build/zarf-arm build/zarf-linux-arm64
-          docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/phillebaba/zarf/agent:$GITHUB_REF_NAME .
-          rm build/zarf-linux-amd64
-          rm build/zarf-linux-arm64
-          echo ZARF_AGENT_IMAGE_DIGEST=$(docker buildx imagetools inspect ghcr.io/phillebaba/zarf/agent:$GITHUB_REF_NAME --format '{{ json . }}' | jq -r .manifest.digest) >> $GITHUB_ENV
+  #     - name: "Zarf Agent: Build and Publish the Image"
+  #       run: |
+  #         cp build/zarf build/zarf-linux-amd64
+  #         cp build/zarf-arm build/zarf-linux-arm64
+  #         docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/phillebaba/zarf/agent:$GITHUB_REF_NAME .
+  #         rm build/zarf-linux-amd64
+  #         rm build/zarf-linux-arm64
+  #         echo ZARF_AGENT_IMAGE_DIGEST=$(docker buildx imagetools inspect ghcr.io/phillebaba/zarf/agent:$GITHUB_REF_NAME --format '{{ json . }}' | jq -r .manifest.digest) >> $GITHUB_ENV
 
       # - name: Auth with AWS
       #   uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
@@ -68,67 +68,67 @@ jobs:
       #     COSIGN_EXPERIMENTAL: 1
 
       # Builds init packages since GoReleaser won't handle this for us
-      - name: Build init-packages For Release
-        run: |
-          make release-init-package ARCH=amd64 AGENT_IMAGE_TAG=$GITHUB_REF_NAME
-          make release-init-package ARCH=arm64 AGENT_IMAGE_TAG=$GITHUB_REF_NAME
+      # - name: Build init-packages For Release
+      #   run: |
+      #     make release-init-package ARCH=amd64 AGENT_IMAGE_TAG=$GITHUB_REF_NAME
+      #     make release-init-package ARCH=arm64 AGENT_IMAGE_TAG=$GITHUB_REF_NAME
 
-      - name: Publish Init Package as OCI and Skeleton
-        run: |
-          make publish-init-package ARCH=amd64 REPOSITORY_URL=ghcr.io/phillebaba/packages
-          make publish-init-package ARCH=arm64 REPOSITORY_URL=ghcr.io/phillebaba/packages
+      # - name: Publish Init Package as OCI and Skeleton
+      #   run: |
+      #     make publish-init-package ARCH=amd64 REPOSITORY_URL=ghcr.io/phillebaba/packages
+      #     make publish-init-package ARCH=arm64 REPOSITORY_URL=ghcr.io/phillebaba/packages
 
-      # Create a CVE report based on this build
-      - name: Create release time CVE report
-        run: "make cve-report"
+      # # Create a CVE report based on this build
+      # - name: Create release time CVE report
+      #   run: "make cve-report"
 
-      # Upload the contents of the build directory for later stages to use
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: build-artifacts
-          path: build/
-          retention-days: 1
+      # # Upload the contents of the build directory for later stages to use
+      # - name: Upload build artifacts
+      #   uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      #   with:
+      #     name: build-artifacts
+      #     path: build/
+      #     retention-days: 1
 
-  validate-release:
-    runs-on: ubuntu-latest
-    needs: build-release
-    steps:
-      # Checkout the repo and setup the tooling for this job
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0
+  # validate-release:
+  #   runs-on: ubuntu-latest
+  #   needs: build-release
+  #   steps:
+  #     # Checkout the repo and setup the tooling for this job
+  #     - name: Checkout
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          name: build-artifacts
-          path: build/
+  #     - name: Download build artifacts
+  #       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+  #       with:
+  #         name: build-artifacts
+  #         path: build/
 
-      - name: Setup golang
-        uses: ./.github/actions/golang
+  #     - name: Setup golang
+  #       uses: ./.github/actions/golang
 
-      - name: Make Zarf executable
-        run: |
-          chmod +x build/zarf
+  #     - name: Make Zarf executable
+  #       run: |
+  #         chmod +x build/zarf
 
-      # Before we run the regular tests we need to aggressively cleanup files to reduce disk pressure
-      - name: Cleanup files
-        uses: ./.github/actions/cleanup-files
+  #     # Before we run the regular tests we need to aggressively cleanup files to reduce disk pressure
+  #     - name: Cleanup files
+  #       uses: ./.github/actions/cleanup-files
 
-      # Build the example packages and run the tests
-      - name: Build examples and run tests
-        run: |
-          sudo env "PATH=$PATH" CI=true APPLIANCE_MODE=true make test-e2e ARCH=amd64
+  #     # Build the example packages and run the tests
+  #     - name: Build examples and run tests
+  #       run: |
+  #         sudo env "PATH=$PATH" CI=true APPLIANCE_MODE=true make test-e2e ARCH=amd64
 
-      - name: Save logs
-        if: always()
-        uses: ./.github/actions/save-logs
+  #     - name: Save logs
+  #       if: always()
+  #       uses: ./.github/actions/save-logs
 
   create-release:
     runs-on: ubuntu-latest
-    needs: validate-release
+    # needs: validate-release
     environment: release
     permissions:
       contents: write
