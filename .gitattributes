@@ -1,1 +1,5 @@
 * text eol=lf
+
+*.zst      binary
+*.tar      binary
+*.part00* binary
