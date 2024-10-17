@@ -32,8 +32,8 @@ jobs:
           make build-cli-linux-arm
 
       # Before we run the release we need to aggressively cleanup files to reduce disk pressure
-      - name: Cleanup files
-        uses: ./.github/actions/cleanup-files
+      # - name: Cleanup files
+      #   uses: ./.github/actions/cleanup-files
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 # v6.0.0
