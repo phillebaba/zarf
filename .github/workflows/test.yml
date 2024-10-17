@@ -27,6 +27,7 @@ jobs:
 
       - name: Build CLI
         run: |
+          make build
           make build-cli-linux-amd
           make build-cli-linux-arm
 
